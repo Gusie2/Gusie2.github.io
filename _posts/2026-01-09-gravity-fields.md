@@ -5,27 +5,27 @@ title: Custom Gravity in Physics Environments
 
 # Custom Gravity in Physics Environments
 
-![Looping fields](../assets/blog_gravity/demo2.gif)
+![Looping fields](../../../assets/blog_gravity/demo2.gif)
 
-## Index(#custom-gravity-in-physics-environments)
+## Index
 - [Custom Gravity in Physics Environments](#custom-gravity-in-physics-environments)
-  - [Index(#custom-gravity-in-physics-environments)](#indexcustom-gravity-in-physics-environments)
-  - [Introduction](#introduction)
-  - [Background](#background)
-    - [Why are gravity fields interesting?](#why-are-gravity-fields-interesting)
-    - [Prerequisite knowledge](#prerequisite-knowledge)
-    - [Starting point](#starting-point)
-    - [End product](#end-product)
-  - [Implementation](#implementation)
-    - [Representation](#representation)
-    - [Collisions](#collisions)
-    - [Priority](#priority)
-  - [Analysis](#analysis)
-    - [Trade-Offs](#trade-offs)
-  - [Reflection](#reflection)
-    - [Lessons learned](#lessons-learned)
-    - [Future improvements](#future-improvements)
-  - [References](#references)
+	- [Index](#index)
+	- [Introduction](#introduction)
+	- [Background](#background)
+		- [Why are gravity fields interesting?](#why-are-gravity-fields-interesting)
+		- [Prerequisite knowledge](#prerequisite-knowledge)
+		- [Starting point](#starting-point)
+		- [End product](#end-product)
+	- [Implementation](#implementation)
+		- [Representation](#representation)
+		- [Collisions](#collisions)
+		- [Priority](#priority)
+	- [Analysis](#analysis)
+		- [Trade-Offs](#trade-offs)
+	- [Reflection](#reflection)
+		- [Lessons learned](#lessons-learned)
+		- [Future improvements](#future-improvements)
+	- [References](#references)
 
 ## Introduction
 
@@ -35,12 +35,11 @@ As I learned more about gameprogramming and the technical sides of games, the in
 
 In this article, I will discuss how I did it, the trade-offs that came with my solutions and possible improvements in the future.
 
-<table>
-<tr>
-<td><img src="../assets/blog_gravity/demo1.gif">Demo showing lots of gravity fields simulated at once</td>
-<td><img src="../assets/blog_gravity/demo3.gif">Demo showing moving gravity fields</td>
-</tr>
-</table>
+![Lots of fields](../../../assets/blog_gravity/demo1.gif)
+Lots of gravity fields simulated at once
+
+![Moving fields](../../../assets/blog_gravity/demo3.gif)
+Moving gravity fields
 
 ## Background
 ### Why are gravity fields interesting?
@@ -145,9 +144,65 @@ Now that we've decided to use sensors for our gravity fields, the next question 
 
 The first option I want to highlight is the `WereBodiesInContact()` function in the `PhysicsSystem` class. We can feed this function two BodyID's and it will simply return a boolean value, telling us whether the bodies were in contact during the last physics frame. This is by far the easiest method of querying collisions with sensors, but also the least versatile. It requires a nested loop over all the fields and all the normal bodies to check contacts with each of them and act accordingly.
 
-Another option is the aforementioned `ContactListener` class. This class allows us to override its `OnContactAdded()` and `OnContactRemoved()` functions. This is a bit more tricky to implement, though nothing too bad. Since this approach is event based and nothing is stored by Jolt between calls, it requires us to keep our own list of active collisions, which we can update using those 2 functions. We can then create a system to loop over this list and apply the gravity.
+Another option is the aforementioned `ContactListener` class. This class allows us to override its `OnContactAdded()` and `OnContactRemoved()` functions. This is a bit more tricky to implement, though nothing too bad. Since this approach is event based and nothing is stored by Jolt between calls, it requires us to keep our own cache of active collisions, which we can update using those 2 functions. We can then create a system to loop over this list and apply the gravity.
 
 Once again, I went with the second option. It allows us to cache collisions and removes the need of unnecessary collision checks. The more complicated implementation is something our users don't need to know and should be abstracted away. This implementation also greatly helps with our priorities, which I'll explain further in the next section.
+
+```cpp
+void GravityFieldSystem::OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& manifold, ContactSettings& settings)
+{
+	if(settings.mIsSensor)
+	{
+		// We know there is a sensor present.
+		// Jolt tells us there can only be one sensor at a time
+		// We need to determine which body is the field and which is the normal object
+
+		BodyID object_id;
+		BodyID field_id;
+
+		if(IsGravityField(inBody1))
+		{
+			field_id = inBody1.GetID();
+			object_id = inBody2.GetID();
+		}
+		else
+		{
+			field_id = inBody2.GetID();
+			object_id = inBody1.GetID();
+		}
+
+		// Add the collision to our collision list
+		std::vector<unsigned int>& vec = collision_list[object_id];
+
+		vec.push_back(field_id);
+	}
+}
+
+void GravityFieldSystem::OnContactRemoved(const SubShapeIDPair& idpair)
+{
+	// If this contact included a field, it must have gone through OnContactAdded().
+	// So if it includes a field, it will be in our cache.
+	// If we find one of the bodies as a key in the map, it must be a regular object.
+	// We can then clear the cache of any collisions between those objects.
+	unsigned int body1ID = idpair.GetBody1ID().GetIndexAndSequenceNumber();
+	unsigned int body2ID = idpair.GetBody2ID().GetIndexAndSequenceNumber();
+	auto it = collision_list.find(body1ID);
+
+	if(it != collision_list.end())
+	{
+		it->second.erase(body2ID);
+		return;
+	}
+
+	it = collision_list.find(body2ID);
+
+	if(it != collision_list.end())
+	{
+		it->second.erase(body1ID);
+		return;
+	}
+}
+```
 
 ### Priority
 
@@ -156,6 +211,82 @@ The final major roadblock are the priorities. In my goals for this feature, I me
 The simplest solution that comes to mind is to update our loop for applying gravity. In there we can store the highest priority field we've encountered so far. If we encounter a lower priority, we can skip it. If we find a higher priority, we can discard all of the gravity forces we've calculated so far. However, this doesn't seem very efficient, does it? This way we always loop over all of the fields, even though we may not even need them.
 
 We can improve this solution, by making clever use of the `ContactListener` we used before. In the callback, instead of just adding the collisions to the list in arbitrary order, we can sort the collisions there, based on the priorities of the gravity fields, with the highest coming first. This way we can simplify the loop for applying gravity. Instead of looping over everything, we can simply loop from the beginning, until we find a priority lower than the first and discard the rest. Now we are never calculating gravities that we won't use.
+
+```cpp
+void GravityFieldSystem::OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& manifold, ContactSettings& settings)
+{
+	if(settings.mIsSensor)
+	{
+		// We know there is a sensor present.
+		// Jolt tells us there can only be one sensor at a time
+		// We need to determine which body is the field and which is the normal object
+
+		BodyID object_id;
+		BodyID field_id;
+
+		if(IsGravityField(inBody1))
+		{
+			field_id = inBody1.GetID();
+			object_id = inBody2.GetID();
+		}
+		else
+		{
+			field_id = inBody2.GetID();
+			object_id = inBody1.GetID();
+		}
+
+		// Sorted insert
+		// Based on https://stackoverflow.com/questions/15843525/how-do-you-insert-the-value-in-a-sorted-vector
+		
+		// Get the cache array for the rigid body
+		std::vector<std::pair<unsigned int, unsigned int>>& vec = collision_list[object_id];
+		
+		// We now also need the field component, because we need to know the priority value.
+		GravityField& field = Engine.ECS().Registry.get<GravityField>(GetEntity(field_id));
+
+		// We'll also store the priority in the cache, to make applying gravity later easier.
+		auto insert_val = std::pair(id_field, field.priority);
+
+		// Determine the insert location using a custom criteria
+		auto it = std::upper_bound(vec.begin(), vec.end(), insert_val,
+						 [&](const std::pair<unsigned int, unsigned int>& body1, const std::pair<unsigned int, unsigned int>& body2)
+						 {
+							// first in the pair is body id, second in the pair is priority
+							return body1.second> body2.second;
+						 }
+		);
+
+		// Add the value at the correct spot
+		vec.insert(it, insert_val);
+	}
+}
+
+void GravityFieldSystem::OnContactRemoved(const SubShapeIDPair& idpair)
+{
+	// If this contact included a field, it must have gone through OnContactAdded().
+	// So if it includes a field, it will be in our cache.
+	// If we find one of the bodies as a key in the map, it must be a regular object.
+	// We can then clear the cache of any collisions between those objects.
+	unsigned int body1ID = idpair.GetBody1ID().GetIndexAndSequenceNumber();
+	unsigned int body2ID = idpair.GetBody2ID().GetIndexAndSequenceNumber();
+
+	auto it = collision_list.find(body1ID);
+
+	if(it != collision_list.end())
+	{
+		RemoveSorted(it->second, body2ID);
+		return;
+	}
+
+	it = collision_list.find(body2ID);
+
+	if(it != collision_list.end())
+	{
+		RemoveSorted(it->second, body1ID);
+		return;
+	}
+}
+```
 
 ## Analysis
 
