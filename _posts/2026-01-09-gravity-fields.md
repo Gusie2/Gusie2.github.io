@@ -4,6 +4,7 @@ title: Custom Gravity in Physics Environments
 ---
 
 # Custom Gravity in Physics Environments
+*This blog post is part of a study project for the Breda University of Applied Sciences.*
 
 ![Looping fields](../../../assets/blog_gravity/demo2.gif)
 
@@ -31,7 +32,7 @@ title: Custom Gravity in Physics Environments
 
 Back when I was little, I used to play Super Mario Galaxy and its sequel on my Nintendo Wii. It was one of my favourite games back then.
 
-As I learned more about gameprogramming and the technical sides of games, the inner workings of Super Mario Galaxy's systems fascinated me more and more. How did they do it? How did they create a movement system that worked so well with the game's strange gravity and camera angles?
+As I learned more about gameprogramming and the technical sides of games, the inner workings of Super Mario Galaxy's systems fascinated me more and more. How did they do it? How did they create these weird gravity shenanigans without the player getting stuck? How did they allow for designer freedom?
 
 In this article, I will discuss how I did it, the trade-offs that came with my solutions and possible improvements in the future.
 
@@ -54,7 +55,7 @@ This blog post assumes readers have basic knowledge about the following topics:
 - Jolt Physics
 
 ### Starting point
-For the purposes of this study project, I will be using the educational BEE engine provided by the BUaS teachers. BEE is an ECS based engine that has support for the Jolt Physics library. We will be using it because it already provides a 3D renderer, debug drawing and other useful debugging capabilities. Those aspects are not the focus of this research, so it is easier if they are already provided. 
+For the purposes of this study project, I will be using the educational BEE engine provided by the BUas teachers. BEE is an ECS based engine that has support for the Jolt Physics library. We will be using it because it already provides a 3D renderer, debug drawing and other useful debugging capabilities. Those aspects are not the focus of this research, so it is easier if they are already provided. 
 
 For our research, we will mostly be using the Jolt integration of BEE.
 
