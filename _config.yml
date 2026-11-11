@@ -27,6 +27,13 @@ url: "gusie2.github.io" # the base hostname & protocol for your site, e.g. http:
 # twitter_username: jekyllrb
 github_username:  Gusie2
 
+collections:
+  projects:
+    title: "project"
+    image: "" # the path to the image, from the root directory
+    tags: []
+    output: true
+
 # Build settings
 theme: jekyll-theme-cayman
 plugins:
