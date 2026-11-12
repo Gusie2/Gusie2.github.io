@@ -1,0 +1,134 @@
+---
+layout: default
+---
+
+<style>
+  :root {
+    --tile-bg: #232321;
+    --tile-text: #ecece8;
+    --tile-border: #3a3a37;
+    --tile-hover: #ecece8;
+    --tile-hover-text: #161615;
+    --focus: #7aa2ff;
+    --gap: 1rem;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* Always 3 equal columns; extra tiles wrap onto new rows */
+  .tile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gap);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* The square: width comes from the grid cell, height matches it */
+  .tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    aspect-ratio: 1 / 0.65;
+    padding: 0.75rem;
+    background-color: var(--tile-bg);
+    color: var(--tile-text);
+    border: 1px solid var(--tile-border);
+    border-radius: 0.5rem;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .tile:hover {
+    background-color: var(--tile-hover);
+    color: var(--tile-hover-text);
+  }
+
+  .tile--image {
+    position: relative;
+    isolation: isolate;
+    /*background-size: cover;*/
+    background-position: top left;
+    border-color: transparent;
+    color: #fff;
+  }
+
+  /* Dark overlay so the title stays readable on any photo */
+  .tile--image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: rgba(0, 0, 0, 0.45);
+    transition: background-color 0.15s;
+  }
+
+  .tile--image:hover { color: #fff; }
+  .tile--image:hover::before { background: rgba(0, 0, 0, 0.65); }
+
+  .tile:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .tile-icon { font-size: 2rem; line-height: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tile { transition: none; }
+  }
+
+  .tile-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--tag-color);
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--tag-color) 65%, transparent);
+    line-height: 1;
+    color: color-mix(in srgb, var(--tag-color), black);
+  }
+</style>
+
+<ul class="tile-grid">
+  {% for project in site.projects %}
+    <li class="tile-item">
+      <a class="tile{% if project.image %} tile--image{% endif %}"
+      href="{{ project.url | relative_url }}"
+      {% if project.image %}style="background-image: url('{{ project.image | relative_url }}');"{% endif %}>
+        <span class="tile-label">{{ project.title }}</span>
+      </a>
+
+      {% if project.tags.size > 0 %}
+        <ul class="tag-list">
+          {% for tag in project.tags %}
+            {% assign color = site.data.tag_colors[tag] | default: "#6b7280" %}
+            <li class="tag" style="--tag-color: {{ color }};">{{ tag }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+{{ content }}

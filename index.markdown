@@ -1,9 +1,7 @@
 ---
 title: Home
-layout: index
+layout: default
 ---
-
-
 
 # About me
 

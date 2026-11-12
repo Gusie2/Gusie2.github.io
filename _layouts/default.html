@@ -12,17 +12,18 @@
   </head>
   <body>
     
-    <header class="page-header" role="banner">
-      <h1 style="color: white;" class="page-name">{{ page.title | default: site.title | default: site.github.repository_name }}</h1>
-      
-      <a href="/" class="btn"> 🏠 </a>
-
-      <div class="dropdown">
-        <button onclick="dropDownFunction()" class="dropbtn">Blog Posts</button>
-        <div id="myDropdown" class="dropdown-content">
-          {% for post in site.posts %}
-            <a href="{{ post.url }}">{{ post.title }}</a>
-          {% endfor %}
+    <header class="page-header">
+      <div class="site-name" style="font-size:x-large; color:white">Guus Ros</div>
+      <div style="display:flex; justify-content: flex-end; margin-top:0.5rem">
+        <a href="/" class="btn"> Home </a>
+        <a href="/projects.html" class="btn">Projects</a>
+        <div class="dropdown" style="margin-left:0.5rem;">
+          <button onclick="dropDownFunction()" class="dropbtn">Blog Posts</button>
+          <div id="myDropdown" class="dropdown-content">
+            {% for post in site.posts %}
+              <a href="{{ post.url }}">{{ post.title }}</a>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </header>

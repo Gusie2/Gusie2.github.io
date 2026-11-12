@@ -11,7 +11,7 @@ $header-link-color: #ffffff;
 
 .site-name {
   position: absolute;
-  top: 0;
+  top: 1rem;
   left: 0;
   padding: 10px; // Optional: for some spacing
   font-size: 20px; // Adjust as needed
@@ -41,33 +41,15 @@ $header-link-color: #ffffff;
   }
 
   + .btn {
-    margin-left: 1rem;
+    margin-left: 0.5rem;
   }
 
-  @include large {
-    padding: 0.75rem 1rem;
-  }
-
-  @include medium {
-    padding: 0.6rem 0.9rem;
-    font-size: 0.9rem;
-  }
-
-  @include small {
-    display: block;
-    width: 100%;
-    padding: 0.75rem;
-    font-size: 0.9rem;
-
-    + .btn {
-      margin-top: 1rem;
-      margin-left: 0;
-    }
-  }
+  padding: 0.75rem 1rem;
 }
 
 .dropbtn {
   display: inline-block;
+  margin-bottom: 1rem;
   margin-bottom: 1rem;
   color: rgb(255, 255, 255);
   background-color: rgba(0, 0, 0, 0.08);
@@ -149,3 +131,8 @@ $header-link-color: #ffffff;
     text-decoration: underline;
   }
 }
+
+.page-header {
+      text-align: left;
+      padding: 0.5rem;
+    }
